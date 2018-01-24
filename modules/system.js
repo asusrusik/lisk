@@ -234,7 +234,6 @@ System.prototype.nonceCompatible = function (nonce) {
  * @implements {async.series}
  * @implements {System.getBroadhash}
  * @implements {modules.blocks.lastBlock.get}
- * @implements {modules.transport.headers}
  * @param {function} cb Callback function
  * @return {setImmediateCallback} cb, err
  */
@@ -255,7 +254,6 @@ System.prototype.update = function (cb) {
 		}
 	}, function (err) {
 		library.logger.debug('System headers', __private);
-		modules.transport.headers(__private);
 		return setImmediate(cb, err);
 	});
 };
@@ -268,7 +266,6 @@ System.prototype.update = function (cb) {
 System.prototype.onBind = function (scope) {
 	modules = {
 		blocks: scope.blocks,
-		transport: scope.transport,
 	};
 };
 

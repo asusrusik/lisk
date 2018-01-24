@@ -31,7 +31,6 @@ var wsRPC = require('../api/ws/rpc/wsRPC').wsRPC;
 // Private fields
 var modules, definitions, library, self, __private = {};
 
-__private.headers = {};
 __private.loaded = false;
 __private.messages = {};
 
@@ -242,19 +241,6 @@ __private.receiveTransaction = function (transaction, peer, extraLogMessage, cb)
 };
 
 // Public methods
-/**
- * Sets or gets headers
- * @param {Object} [headers]
- * @return {Object} private variable with headers
- */
-Transport.prototype.headers = function (headers) {
-	if (headers) {
-		__private.headers = headers;
-	}
-
-	return __private.headers;
-};
-
 
 /**
  * Returns true if broadcaster consensus is less than minBroadhashConsensus.
@@ -302,7 +288,6 @@ Transport.prototype.onBind = function (scope) {
 
 	definitions = scope.swagger.definitions;
 
-	__private.headers = System.getHeaders();
 	__private.broadcaster.bind(
 		scope.peers,
 		scope.transport,
