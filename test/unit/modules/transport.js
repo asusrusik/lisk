@@ -822,16 +822,36 @@ describe('transport', function () {
 	});
 
 	describe('Transport', function () {
+		var restoreRewiredDeps;
 
-		describe('headers', function () {
+		beforeEach(function (done) {
 
-			describe('when headers is defined', function () {
+			transportInstance = new TransportModule(function (err, transportSelf) {
 
-				it('should set headers');
-			});
+				transportSelf.onBind(defaultScope);
 
-			it('should return headers');
+				library = {
+					schema: {
+						validate: sinonSandbox.stub().callsArg(2)
+					},
+					logger: {
+						debug: sinonSandbox.spy()
+					}
+				};
+
+				restoreRewiredDeps = TransportModule.__set__({
+					library: library
+				});
+
+				done();
+			}, defaultScope);
 		});
+
+		afterEach(function (done) {
+			restoreRewiredDeps();
+			done();
+		});
+
 
 		describe('poorConsensus', function () {
 
