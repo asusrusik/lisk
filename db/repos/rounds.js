@@ -64,7 +64,13 @@ var Queries = {
 
 	getDelegatesSnapshot: 'SELECT "publicKey" FROM mem_votes_snapshot ORDER BY vote DESC, "publicKey" ASC LIMIT $1',
 
-	restoreVotesSnapshot: 'UPDATE mem_accounts m SET vote = b.vote FROM mem_votes_snapshot b WHERE m.address = b.address'
+	restoreVotesSnapshot: 'UPDATE mem_accounts m SET vote = b.vote FROM mem_votes_snapshot b WHERE m.address = b.address',
+
+	insertRoundInformationWithAmount: 'INSERT INTO mem_round ("address", "amount", "delegate", "blockId", "round") SELECT ${address}, (${amount})::bigint, "dependentId", ${blockId}, ${round} FROM mem_accounts2delegates WHERE "accountId" = ${address};',
+
+	insertRoundInformationWithRemovingDelegate: 'INSERT INTO mem_round ("address", "amount", "delegate", "blockId", "round") SELECT ${address}, (-balance)::bigint, ${delegate}, ${blockId}, ${round} FROM mem_accounts WHERE address = ${address};',
+
+	insertRoundInformationWithAddingDelegate: 'INSERT INTO mem_round ("address", "amount", "delegate", "blockId", "round") SELECT ${address}, (balance)::bigint, ${delegate}, ${blockId}, ${round} FROM mem_accounts WHERE address = ${address};',
 };
 
 /**
@@ -199,6 +205,52 @@ RoundsRepo.prototype.restoreRoundSnapshot = function () {
  */
 RoundsRepo.prototype.restoreVotesSnapshot = function () {
 	return this.db.none(Queries.restoreVotesSnapshot);
+};
+
+/**
+ * Insert round information record to mem_rounds
+ *
+ * @param {string} address - Address of the account
+ * @param {string} blockId - Block Id of hte during which the information updated
+ * @param {Number} round - Round number during which update was made
+ * @param {Number} amount - Amount updated during a round
+ * @return {Promise}
+ */
+RoundsRepo.prototype.insertRoundInformationWithAmount = function (address, blockId, round, amount) {
+	return this.db.none(Queries.insertRoundInformationWithAmount, {
+		address: address,
+		amount: amount,
+		blockId: blockId,
+		round: round
+	});
+};
+
+/**
+ * Insert round information record to mem_rounds
+ *
+ * @param {string} address - Address of the account
+ * @param {string} blockId - Block Id of hte during which the information updated
+ * @param {Number} round - Round number during which update was made
+ * @param {string} delegateId - Delegate Id for which to add round information
+ * @param {string} mode - Possible values of '+' or '-' represents behaviour of adding or removing delegate
+ * @return {Promise}
+ */
+RoundsRepo.prototype.insertRoundInformationWithDelegate = function (address, blockId, round, delegateId, mode) {
+	if(mode === '-') {
+		return this.db.none(Queries.insertRoundInformationWithRemovingDelegate, {
+			address: address,
+			blockId: blockId,
+			round: round,
+			delegate: delegateId
+		});
+	} else {
+		return this.db.none(Queries.insertRoundInformationWithAddingDelegate, {
+			address: address,
+			blockId: blockId,
+			round: round,
+			delegate: delegateId
+		});
+	}
 };
 
 module.exports = RoundsRepo;
