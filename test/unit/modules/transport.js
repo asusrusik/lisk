@@ -28,7 +28,7 @@ describe('transport', function () {
 
 	var dbStub, loggerStub, busStub, schemaStub, networkStub, balancesSequenceStub,
 		transactionStub, blockStub, peersStub, broadcasterStubRef, transportInstance,
-		library, __private, modules, defaultScope, restoreRewiredTopDeps, peerStub;
+		library, __private, modules, defaultScope, restoreRewiredTopDeps, peerStub, constants;
 
 	const SAMPLE_SIGNATURE_1 = '32636139613731343366633732316664633534306665663839336232376538643634386432323838656661363165353632363465646630316132633233303739';
 	const SAMPLE_SIGNATURE_2 = '61383939393932343233383933613237653864363438643232383865666136316535363236346564663031613263323330373784192003750382840553137595';
@@ -843,6 +843,16 @@ describe('transport', function () {
 					library: library
 				});
 
+				modules = {
+					peers: {
+						getConsensus: sinonSandbox.stub().returns(100)
+					}
+				};
+
+				constants = {
+					minBroadhashConsensus: 51
+				};
+
 				done();
 			}, defaultScope);
 		});
@@ -855,19 +865,67 @@ describe('transport', function () {
 
 		describe('poorConsensus', function () {
 
-			describe('when consensus is undefined', function () {
+			describe('when consensus argument is not specified', function () {
 
-				it('should set consensus = modules.peers.getConsensus()');
-			});
+				it('should return true if modules.peers.getConsensus() < constants.minBroadhashConsensus', function (done) {
+					var restoreDeps = TransportModule.__set__({
+						modules: {
+							peers: {
+								getConsensus: sinonSandbox.stub().returns(50)
+							}
+						}
+					});
 
-			describe('when consensus is undefined', function () {
+					var isPoorConsensus = transportInstance.poorConsensus();
+					expect(isPoorConsensus).to.be.true;
+					restoreDeps();
+					done();
+				});
 
-				it('should return false');
+				it('should return false if modules.peers.getConsensus() >= constants.minBroadhashConsensus', function (done) {
+					var restoreDeps = TransportModule.__set__({
+						modules: {
+							peers: {
+								getConsensus: sinonSandbox.stub().returns(51)
+							}
+						}
+					});
+
+					var isPoorConsensus = transportInstance.poorConsensus();
+					expect(isPoorConsensus).to.be.false;
+					restoreDeps();
+					done();
+				});
+
+				it('should return false if modules.peers.getConsensus() returns undefined', function (done) {
+					var restoreDeps = TransportModule.__set__({
+						modules: {
+							peers: {
+								getConsensus: sinonSandbox.stub().returns(undefined)
+							}
+						}
+					});
+
+					var isPoorConsensus = transportInstance.poorConsensus();
+					expect(isPoorConsensus).to.be.false;
+					restoreDeps();
+					done();
+				});
 			});
 
 			describe('when consensus is defined', function () {
 
-				it('should return consensus < constants.minBroadhashConsensus');
+				it('should return true if argument consensus < constants.minBroadhashConsensus', function (done) {
+					var isPoorConsensus = transportInstance.poorConsensus(40);
+					expect(isPoorConsensus).to.be.true;
+					done();
+				});
+
+				it('should return false if argument consensus >= constants.minBroadhashConsensus', function (done) {
+					var isPoorConsensus = transportInstance.poorConsensus(60);
+					expect(isPoorConsensus).to.be.false;
+					done();
+				});
 			});
 		});
 
