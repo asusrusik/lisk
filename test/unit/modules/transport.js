@@ -187,6 +187,7 @@ describe('transport', function () {
 			Object.keys(__privateOriginal).forEach(function (field) {
 				__private[field] = __privateOriginal[field];
 			});
+			restoreRewiredDeps();
 			done();
 		});
 
@@ -211,11 +212,11 @@ describe('transport', function () {
 			describe('when options.peer is defined', function () {
 
 				var removeSpy, peerData;
-				var restoreRewiredDeps;
+				var restoreNestedRewiredDeps;
 
 				beforeEach(function (done) {
 					removeSpy = sinonSandbox.spy();
-					restoreRewiredDeps = TransportModule.__set__({
+					restoreNestedRewiredDeps = TransportModule.__set__({
 						modules: {
 							peers: {
 								remove: removeSpy
@@ -230,7 +231,7 @@ describe('transport', function () {
 				});
 
 				afterEach(function (done) {
-					restoreRewiredDeps();
+					restoreNestedRewiredDeps();
 					done();
 				});
 
@@ -278,7 +279,7 @@ describe('transport', function () {
 			});
 
 			it('should call library.schema.validate with custom schema.signatures', function (done) {
-				var restoreRewiredDeps = TransportModule.__set__({
+				var restoreDeps = TransportModule.__set__({
 					definitions: {
 						Signature: {
 							id: 'transport.signatures',
@@ -300,7 +301,7 @@ describe('transport', function () {
 				}, function (err) {
 					expect(library.schema.validate.called).to.be.true;
 
-					restoreRewiredDeps();
+					restoreDeps();
 					done();
 				});
 			});
@@ -385,7 +386,7 @@ describe('transport', function () {
 		});
 
 		describe('receiveSignature', function () {
-			var restoreRewiredDeps;
+			var restoreNestedRewiredDeps;
 
 			beforeEach(function (done) {
 				library = {
@@ -400,7 +401,7 @@ describe('transport', function () {
 					}
 				};
 
-				restoreRewiredDeps = TransportModule.__set__({
+				restoreNestedRewiredDeps = TransportModule.__set__({
 					library: library,
 					modules: modules
 				});
@@ -409,7 +410,7 @@ describe('transport', function () {
 			});
 
 			afterEach(function (done) {
-				restoreRewiredDeps();
+				restoreNestedRewiredDeps();
 				done();
 			});
 
@@ -476,7 +477,7 @@ describe('transport', function () {
 
 		describe('receiveTransactions', function () {
 
-			var restoreRewiredDeps, query;
+			var restoreNestedRewiredDeps, query;
 
 			beforeEach(function (done) {
 				library = {
@@ -494,7 +495,7 @@ describe('transport', function () {
 					}
 				};
 
-				restoreRewiredDeps = TransportModule.__set__({
+				restoreNestedRewiredDeps = TransportModule.__set__({
 					library: library,
 					modules: modules
 				});
@@ -521,7 +522,7 @@ describe('transport', function () {
 			});
 
 			afterEach(function (done) {
-				restoreRewiredDeps();
+				restoreNestedRewiredDeps();
 				done();
 			});
 
@@ -621,7 +622,7 @@ describe('transport', function () {
 
 		describe('receiveTransaction', function () {
 
-			var transaction, peerAddressString;
+			var transaction, peerAddressString, restoreNestedRewiredDeps;
 
 			beforeEach(function () {
 				transaction = {
@@ -671,10 +672,15 @@ describe('transport', function () {
 					}
 				};
 
-				restoreRewiredDeps = TransportModule.__set__({
+				restoreNestedRewiredDeps = TransportModule.__set__({
 					library: library,
 					modules: modules
 				});
+			});
+
+			afterEach(function (done) {
+				restoreNestedRewiredDeps();
+				done();
 			});
 
 			it('should call library.logic.transaction.objectNormalize with transaction', function (done) {
