@@ -14,6 +14,8 @@
 'use strict';
 
 var _ = require('lodash');
+var bignum = require('../../helpers/bignum.js');
+var swaggerHelper = require('../../helpers/swagger');
 
 // Private Fields
 var modules;
@@ -99,6 +101,69 @@ DelegatesController.getForgers = function (context, next) {
 
 		next(null, data);
 	});
+};
+
+DelegatesController.getForgedByAccount = function (context, next) {
+	var params = context.request.swagger.params;
+	var filters = {
+		generatorPublicKey: params.publicKey.value,
+		start: params.fromTimestamp.value,
+		end: params.toTimestamp.value
+	};
+
+	// Remove filters with null values
+	filters = _.pickBy(filters, function (v) {
+		return !(v === undefined || v === null);
+	});
+
+	if (filters.start !== undefined || filters.end !== undefined) {
+		modules.blocks.utils.aggregateBlocksReward(filters, function (err, reward) {
+			if (err) { 
+				if (err === 'Account not found or is not a delegate') {
+					return next(swaggerHelper.generateParamsErrorObject(['publicKey']));
+				} else {
+					return next(err); 
+				}
+			}
+
+			var forged = new bignum(reward.fees).plus(new bignum(reward.rewards)).toString();
+			var response = {
+				data: {
+					fees: reward.fees,
+					rewards: reward.rewards,
+					forged: forged,
+					count: reward.count
+				},
+				meta: {},
+				links: {}
+			};
+			return next(null, response);
+		});
+	} else {
+		modules.accounts.getAccount({ publicKey: filters.generatorPublicKey }, ['fees', 'rewards', 'producedblocks'], function (err, account) {
+			if (err) {
+				return next(err);
+			} else if (!account) {
+				return next(swaggerHelper.generateParamsErrorObject(['publicKey']));
+			}
+
+			var forged = new bignum(account.fees).plus(new bignum(account.rewards)).toString();
+
+			var response = {
+				data: {
+					fees: account.fees,
+					rewards: account.rewards,
+					forged: forged,
+					count: account.producedblocks 
+				},
+				meta: {},
+				links: {}
+			};
+			
+			return next(null, response);
+		});
+	}
+
 };
 
 module.exports = DelegatesController;
